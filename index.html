@@ -115,43 +115,11 @@
         .remote-cursor-icon { color: #007aff; text-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 20px; transform: rotate(-20deg); }
         .remote-cursor-name { background: #007aff; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 6px; border-top-left-radius: 0; margin-left: 10px; margin-top: -5px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap; }
 
-        /* Zoom Container - Update for Panning */
+        /* Zoom Container */
         #zoom-container { 
             transform-origin: center center; 
             transition: transform 0.1s ease-out; 
             will-change: transform;
-        }
-
-        /* Video Grid trong phòng học */
-        .video-participant {
-            position: relative;
-            background: #1f2937;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            aspect-ratio: 4/3;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        }
-        .video-participant video {
-            width: 100%; height: 100%; object-fit: cover;
-            transform: scaleX(-1); /* Gương cho camera */
-        }
-        .video-label {
-            position: absolute; bottom: 4px; left: 4px;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-            padding: 2px 6px; border-radius: 6px;
-            font-size: 10px; font-weight: bold; color: white;
-            display: flex; align-items: center; gap: 4px;
-        }
-
-        /* Lớp phủ ngăn tương tác iframe cho Khách */
-        #cinema-blocker {
-            position: absolute; inset: 0;
-            z-index: 50; background: transparent;
-            pointer-events: auto; /* Bắt hết sự kiện chuột của khách */
-        }
-        #cinema-blocker.host {
-            pointer-events: none; /* Chủ phòng có thể thao tác */
         }
 
         /* Tùy chỉnh input Poll */
@@ -546,20 +514,12 @@
                     <button onclick="window.toggleMobileChat('learning')" class="md:hidden ml-1 px-2 text-gray-400"><i class="ph-bold ph-x"></i></button>
                 </div>
                 
-                <!-- CAMERA TAB: Chứa danh sách Video Call thực sự -->
+                <!-- Mới: Danh sách Lưới Video linh hoạt -->
                 <div id="right-content-cam" class="right-content hidden flex-1 p-3 overflow-y-auto custom-scrollbar flex-col gap-4">
                     <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wide px-1 border-b border-gray-200 pb-2">Camera Lớp Học (<span id="user-count">1</span>)</h4>
                     
-                    <!-- Lưới Video Grid chứa bạn và người khác -->
                     <div id="video-grid" class="grid grid-cols-2 gap-2">
-                        <!-- Video của chính mình -->
-                        <div class="video-participant">
-                            <video id="local-video" autoplay playsinline muted class="hidden"></video>
-                            <div id="local-video-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800">
-                                <i class="ph-fill ph-user text-2xl text-gray-500 mb-1"></i>
-                            </div>
-                            <div class="video-label">Bạn <i id="status-mic-local" class="ph-fill ph-microphone-slash text-red-400"></i></div>
-                        </div>
+                        <!-- JS Sẽ đổ dữ liệu vào đây (Mọi người đều có Box) -->
                     </div>
                 </div>
 
@@ -611,6 +571,12 @@
                 <button onclick="window.copyRoomCode('cinema')" class="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/5 px-4 py-2 rounded-xl text-sm font-mono transition-colors font-bold text-gray-300">
                     Mã rạp: <span id="cinema-code-display" class="text-purple-400">---</span> <i class="ph-bold ph-copy text-gray-500"></i>
                 </button>
+                
+                <div class="flex items-center gap-1 bg-black/40 rounded-2xl p-1 border border-white/10">
+                    <button id="btn-mic-cinema" onclick="window.toggleMic()" class="w-10 h-10 rounded-xl transition-colors bg-red-500/20 text-red-500 flex items-center justify-center">
+                        <i class="ph-bold ph-microphone-slash text-xl" id="icon-mic-cinema"></i>
+                    </button>
+                </div>
                 
                 <button id="btn-delete-cinema" onclick="window.promptDeleteRoom('cinema')" class="hidden w-10 h-10 bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl items-center justify-center transition-colors border border-red-500/30" title="Đóng rạp chiếu">
                     <i class="ph-bold ph-power text-xl"></i>
@@ -788,7 +754,6 @@
         </div>
     </div>
 
-    <!-- MODAL TẠO BÌNH CHỌN -->
     <div id="modal-create-poll" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4">
         <div class="glass-card max-w-sm w-full p-6 text-gray-900 shadow-2xl border border-white">
             <div class="flex justify-between items-center mb-4">
@@ -798,14 +763,14 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Câu hỏi (Tùy chọn)</label>
-                    <input type="text" id="poll-question" class="ios-input bg-gray-50 p-3 shadow-inner" placeholder="VD: Câu 1" />
+                    <input type="text" id="poll-question" class="ios-input bg-gray-50 p-3 shadow-inner" placeholder="VD: Chọn đáp án đúng cho Câu 1" />
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Định dạng thi</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Loại câu hỏi</label>
                     <select id="poll-type" class="ios-input bg-gray-50 p-3 font-semibold shadow-inner">
-                        <option value="abcd">Trắc nghiệm chọn 1 (A, B, C, D)</option>
-                        <option value="tf">Đúng / Sai (4 ý a,b,c,d)</option>
-                        <option value="text">Trả lời ngắn (Ghi 4 ô)</option>
+                        <option value="abcd">Trắc nghiệm A, B, C, D</option>
+                        <option value="tf">Đúng / Sai (4 ý)</option>
+                        <option value="text">Câu trả lời ngắn</option>
                     </select>
                 </div>
                 <div>
@@ -1308,10 +1273,11 @@
             
             try {
                 const presenceSnap = await getDocs(collection(db, 'edumeet', 'public', `presence_${roomId}`));
-                if(presenceSnap.size >= room.maxUsers && room.ownerId !== window.eduApp.user.uid) {
-                    return window.showToast(`Phòng đã đầy (${room.maxUsers}/${room.maxUsers} người)!`, 'error');
+                const currentUsersCount = presenceSnap.size;
+                if(currentUsersCount >= room.maxUsers && room.ownerId !== window.eduApp.user.uid) {
+                    return window.showToast(`Phòng đã đầy (${room.maxUsers}/${room.maxUsers} người)! Không thể tham gia.`, 'error');
                 }
-            } catch (e) { console.warn(e); }
+            } catch (e) { console.error(e); }
 
             if(room.isPrivate && room.ownerId !== window.eduApp.user.uid) {
                 window.eduApp.pendingJoinRoomId = roomId; 
@@ -1358,7 +1324,6 @@
             
             window.eduApp.isScreenSharing = false;
             window.eduApp.pendingRequest = false;
-            document.querySelectorAll('audio[id^="audio-"]').forEach(el => el.remove());
             
             if(window.eduApp.peer) window.eduApp.peer.destroy(); 
             
@@ -1374,6 +1339,10 @@
             }
             window.eduApp.camEnabled = false; window.eduApp.micEnabled = false;
             window.updateMediaButtonsUI();
+
+            // Đóng Modal confirm nếu đang mở
+            const confirmModal = document.getElementById('modal-confirm');
+            if (confirmModal) { confirmModal.classList.add('hidden'); confirmModal.classList.remove('flex'); }
 
             try { deleteDoc(doc(db, 'edumeet', 'public', `presence_${roomId}`, window.eduApp.user.uid)); } catch(e){}
             
@@ -1407,12 +1376,20 @@
             return track;
         }
         
+        // CẬP NHẬT: Lấy stream mặc định khi vào phòng (tắt tiếng/hình)
         async function getOrCreateLocalStream() {
             if (!window.eduApp.localStream) {
-                const audioTrack = createEmptyAudioTrack();
-                const videoTrack = createEmptyVideoTrack({ width: 640, height: 480 });
-                window.eduApp.localStream = new MediaStream([videoTrack, audioTrack]);
-                document.getElementById('local-video').srcObject = window.eduApp.localStream;
+                try {
+                    // Cố gắng xin quyền thực sự ngay từ đầu để tránh lỗi peerjs
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    stream.getTracks().forEach(t => t.enabled = false); // Tắt ngay lập tức
+                    window.eduApp.localStream = stream;
+                } catch (e) {
+                    console.warn("Không có quyền Media ban đầu, dùng stream ảo.");
+                    const audioTrack = createEmptyAudioTrack();
+                    const videoTrack = createEmptyVideoTrack({ width: 640, height: 480 });
+                    window.eduApp.localStream = new MediaStream([videoTrack, audioTrack]);
+                }
             }
             return window.eduApp.localStream;
         }
@@ -1448,10 +1425,6 @@
                         window.handleIncomingStream(callerUid, remoteStream);
                     });
 
-                    call.on('close', () => {
-                        window.removeRemoteVideo(call.peer.split('_')[2]);
-                    });
-
                     window.eduApp.calls[call.peer] = call;
                 });
             } catch (e) {
@@ -1465,101 +1438,128 @@
             if (roomCat === 'cinema') {
                 if (window.eduApp.cinemaState?.isScreenSharing && window.eduApp.cinemaState?.screenSharerUid === uid) {
                     const videoEl = document.getElementById('cinema-screen-video');
-                    videoEl.srcObject = remoteStream;
-                    videoEl.classList.remove('hidden');
+                    if(videoEl) {
+                        videoEl.srcObject = remoteStream;
+                        videoEl.classList.remove('hidden');
+                        videoEl.play().catch(e=>{});
+                    }
                     const iframe = document.getElementById('cinema-iframe');
                     if(iframe) iframe.classList.add('hidden');
-                    document.getElementById('cinema-placeholder').classList.add('hidden');
-                    videoEl.play().catch(e=>{});
+                    const ph = document.getElementById('cinema-placeholder');
+                    if(ph) ph.classList.add('hidden');
                 }
-                window.addRemoteAudioOnly(uid, remoteStream);
-            } else {
-                window.addRemoteVideo(uid, remoteStream);
-            }
-        }
+                
+                // Mở audio ẩn cho Cinema
+                let audio = document.getElementById(`audio-${uid}`);
+                if(!audio) {
+                    audio = document.createElement('audio');
+                    audio.id = `audio-${uid}`;
+                    audio.autoplay = true;
+                    document.body.appendChild(audio);
+                }
+                audio.srcObject = remoteStream;
 
-        window.addRemoteAudioOnly = (uid, stream) => {
-            let audio = document.getElementById(`audio-${uid}`);
-            if(!audio) {
-                audio = document.createElement('audio');
-                audio.id = `audio-${uid}`;
-                audio.autoplay = true;
-                document.body.appendChild(audio);
+            } else {
+                // Learning: Gắn stream vào thẻ video đã được tạo sẵn trên lưới
+                const videoEl = document.getElementById(`video-${uid}`);
+                if(videoEl) {
+                    videoEl.srcObject = remoteStream;
+                    videoEl.play().catch(e=>console.warn(e));
+                }
             }
-            audio.srcObject = stream;
         }
 
         window.callPeer = (targetUid, roomId) => {
             const roomCat = localStorage.getItem('eduApp_roomCat');
             const streamToCall = (roomCat === 'cinema' && window.eduApp.isScreenSharing) ? window.eduApp.screenStream : window.eduApp.localStream;
-            window.callPeerWithStream(targetUid, roomId, streamToCall);
-        }
-
-        window.callPeerWithStream = (targetUid, roomId, stream) => {
+            
             if(targetUid === window.eduApp.user.uid) return;
             const targetPeerId = `cdzoom_${roomId}_${targetUid}`;
             
-            if(window.eduApp.calls[targetPeerId]) window.eduApp.calls[targetPeerId].close();
+            if(window.eduApp.calls[targetPeerId]) return; // Đã gọi rồi thì bỏ qua để tránh chớp giật
 
             if (!window.eduApp.peer || window.eduApp.peer.disconnected || window.eduApp.peer.destroyed) return;
 
             try {
-                const call = window.eduApp.peer.call(targetPeerId, stream);
+                const call = window.eduApp.peer.call(targetPeerId, streamToCall);
                 if(call) {
                     call.on('stream', remoteStream => {
                         window.handleIncomingStream(targetUid, remoteStream);
                     });
-                    call.on('close', () => {
-                        window.removeRemoteVideo(targetUid);
-                    });
                     window.eduApp.calls[targetPeerId] = call;
                 }
             } catch(e) {
-                console.warn('Cannot call peer (Bị chặn bởi môi trường):', e);
+                console.warn('Cannot call peer:', e);
             }
         }
 
-        window.addRemoteVideo = (uid, stream) => {
-            let container = document.getElementById(`video-container-${uid}`);
-            if(!container) {
-                const user = window.eduApp.roomUsers.find(u => u.uid === uid) || { name: 'Người dùng', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed='+uid };
-                
-                container = document.createElement('div');
-                container.id = `video-container-${uid}`;
-                container.className = 'video-participant';
-                
-                container.innerHTML = `
-                    <video id="video-${uid}" autoplay playsinline></video>
-                    <div id="video-placeholder-${uid}" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800">
-                        <img src="${user.avatar}" class="w-10 h-10 rounded-full mb-1 border-2 border-gray-600">
-                    </div>
-                    <div class="video-label">${user.name}</div>
-                `;
-                document.getElementById('video-grid').appendChild(container);
-            }
+        // --- CẬP NHẬT: Vẽ lưới Video dựa trên danh sách người dùng thay vì chờ WebRTC ---
+        window.updateVideoGridUI = () => {
+            const grid = document.getElementById('video-grid');
+            if(!grid) return;
 
-            const video = document.getElementById(`video-${uid}`);
-            const placeholder = document.getElementById(`video-placeholder-${uid}`);
-            
-            video.srcObject = stream;
-            video.play().catch(e => console.log('Autoplay blocked', e));
+            const currentUids = window.eduApp.roomUsers.map(u => u.uid);
+            const existingUids = Array.from(grid.children).map(el => el.getAttribute('data-uid')).filter(Boolean);
 
-            setInterval(() => {
-                if(video.srcObject) {
-                    const videoTrack = video.srcObject.getVideoTracks()[0];
-                    if(videoTrack && videoTrack.enabled && videoTrack.readyState === 'live' && !videoTrack.muted) {
-                        video.classList.remove('hidden'); placeholder.classList.add('hidden');
-                    } else {
-                        video.classList.add('hidden'); placeholder.classList.remove('hidden');
+            // Xóa người đã thoát
+            existingUids.forEach(uid => {
+                if(!currentUids.includes(uid) && uid !== window.eduApp.user.uid) {
+                    const el = document.getElementById(`video-container-${uid}`);
+                    if(el) el.remove();
+                }
+            });
+
+            // Thêm hoặc Cập nhật người đang trong phòng
+            window.eduApp.roomUsers.forEach(u => {
+                const isMe = u.uid === window.eduApp.user.uid;
+                let container = document.getElementById(isMe ? 'video-container-local' : `video-container-${u.uid}`);
+
+                if(!container) {
+                    container = document.createElement('div');
+                    container.id = isMe ? 'video-container-local' : `video-container-${u.uid}`;
+                    container.className = 'video-participant relative bg-gray-900 rounded-xl overflow-hidden aspect-[4/3] flex items-center justify-center border border-gray-200 shadow-sm';
+                    container.setAttribute('data-uid', u.uid);
+                    
+                    const videoId = isMe ? 'local-video' : `video-${u.uid}`;
+                    const transform = isMe ? 'transform scale-x-[-1]' : '';
+                    
+                    container.innerHTML = `
+                        <video id="${videoId}" autoplay playsinline ${isMe ? 'muted' : ''} class="w-full h-full object-cover ${transform} hidden z-10"></video>
+                        <div id="placeholder-${u.uid}" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
+                            <img src="${u.avatar}" class="w-12 h-12 rounded-full border border-gray-600 mb-1 object-cover">
+                        </div>
+                        <div class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1.5 z-20">
+                            ${isMe ? 'Bạn' : u.name} <i id="status-mic-${u.uid}" class="ph-fill ph-microphone-slash text-red-400"></i>
+                        </div>
+                    `;
+                    grid.appendChild(container);
+
+                    if(isMe && window.eduApp.localStream) {
+                        const localVid = document.getElementById('local-video');
+                        localVid.srcObject = window.eduApp.localStream;
                     }
                 }
-            }, 1000);
-        }
 
-        window.removeRemoteVideo = (uid) => {
-            const container = document.getElementById(`video-container-${uid}`);
-            if(container) container.remove();
-        }
+                // Cập nhật trạng thái hiển thị Icon và Video
+                const micIcon = document.getElementById(`status-mic-${u.uid}`);
+                if(micIcon) {
+                    micIcon.className = u.isMicOn ? 'ph-fill ph-microphone text-green-400' : 'ph-fill ph-microphone-slash text-red-400';
+                }
+
+                const videoEl = document.getElementById(isMe ? 'local-video' : `video-${u.uid}`);
+                const placeholder = document.getElementById(`placeholder-${u.uid}`);
+                
+                if(videoEl && placeholder) {
+                    if(u.isCamOn) {
+                        videoEl.classList.remove('hidden');
+                        placeholder.classList.add('hidden');
+                    } else {
+                        videoEl.classList.add('hidden');
+                        placeholder.classList.remove('hidden');
+                    }
+                }
+            });
+        };
 
         window.enterRoom = async (roomId, roomData, category) => {
             window.eduApp.room = roomData;
@@ -1580,17 +1580,8 @@
                 document.getElementById('room-code-display').innerText = roomId;
                 document.getElementById('room-code-mobile').innerText = roomId;
                 document.getElementById('chat-box').innerHTML = '';
+                document.getElementById('video-grid').innerHTML = ''; // Clear lưới cũ
                 
-                document.getElementById('video-grid').innerHTML = `
-                    <div class="video-participant">
-                        <video id="local-video" autoplay playsinline muted class="hidden"></video>
-                        <div id="local-video-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800">
-                            <i class="ph-fill ph-user text-2xl text-gray-500 mb-1"></i>
-                        </div>
-                        <div class="video-label">Bạn <i id="status-mic-local" class="ph-fill ph-microphone-slash text-red-400"></i></div>
-                    </div>
-                `;
-
                 const isOwner = roomData.ownerId === window.eduApp.user.uid;
                 document.getElementById('btn-delete-room').style.display = isOwner ? 'flex' : 'none';
                 document.getElementById('vote-create-area').style.display = isOwner ? 'block' : 'none';
@@ -1615,18 +1606,15 @@
                 const urlWrapper = document.getElementById('cinema-url-wrapper');
                 const updateBtn = document.getElementById('btn-update-url');
                 const divider = document.getElementById('cinema-divider');
-                const blocker = document.getElementById('cinema-blocker');
                 const reqArea = document.getElementById('cinema-requests-area');
 
                 if (isOwner) {
                     urlWrapper.classList.remove('hidden'); updateBtn.classList.remove('hidden'); divider.classList.remove('hidden');
                     reqArea.classList.remove('hidden'); reqArea.classList.add('flex');
-                    if (blocker) blocker.classList.add('host');
                     updateDoc(doc(db, 'edumeet', 'public', 'cinema_rooms', roomId), { isScreenSharing: false, screenSharerUid: null }).catch(e=>{});
                 } else {
                     urlWrapper.classList.add('hidden'); updateBtn.classList.add('hidden'); divider.classList.add('hidden');
                     reqArea.classList.add('hidden'); reqArea.classList.remove('flex');
-                    if (blocker) blocker.classList.remove('host');
                 }
 
                 window.switchView('cinema');
@@ -1635,7 +1623,10 @@
             }
 
             try { 
-                await setDoc(doc(db, 'edumeet', 'public', `presence_${roomId}`, window.eduApp.user.uid), { name: window.eduApp.user.name, avatar: window.eduApp.user.avatar, emailVerified: window.eduApp.user.emailVerified, time: Date.now() }); 
+                await setDoc(doc(db, 'edumeet', 'public', `presence_${roomId}`, window.eduApp.user.uid), { 
+                    name: window.eduApp.user.name, avatar: window.eduApp.user.avatar, emailVerified: window.eduApp.user.emailVerified, time: Date.now(),
+                    isMicOn: false, isCamOn: false // Cấu hình mặc định lúc vào
+                }); 
                 await window.sendSystemMessage(roomId, `${window.eduApp.user.name} đã tham gia phòng`);
             } catch(e){}
         }
@@ -1750,20 +1741,15 @@
 
             window.eduApp.unsubPresence = onSnapshot(collection(db, 'edumeet', 'public', `presence_${roomId}`), (snap) => {
                 window.eduApp.roomUsers = snap.docs.map(d => ({uid: d.id, ...d.data()}));
-                const cEl = document.getElementById('user-count'); if(cEl) cEl.innerText = window.eduApp.roomUsers.length;
+                
+                // --- Cập nhật Lưới Video & UI Đồng bộ ---
+                window.updateVideoGridUI();
                 window.updateActivePollUI(); 
 
                 if (window.eduApp.peer && !window.eduApp.peer.disconnected) {
                     window.eduApp.roomUsers.forEach(u => { window.callPeer(u.uid, roomId); });
                 }
                 
-                Object.keys(window.eduApp.calls).forEach(peerId => {
-                    const uid = peerId.split('_')[2];
-                    if(!window.eduApp.roomUsers.find(u => u.uid === uid)) {
-                        window.removeRemoteVideo(uid);
-                        delete window.eduApp.calls[peerId];
-                    }
-                });
             }, err => console.warn(err));
 
             window.eduApp.unsubStrokes = onSnapshot(collection(db, 'edumeet', 'public', `strokes_${roomId}`), (snap) => {
@@ -2174,287 +2160,144 @@
         }
 
         // ==========================================
-        // 6. LOGIC XEM CHUNG (CINEMA) & MÀN HÌNH CHIA SẺ
+        // 8. CHUNG: CHAT & CAMERA
         // ==========================================
-        window.renderShareButton = () => {
-            const btn = document.getElementById('btn-screen-share');
-            const txt = document.getElementById('txt-screen-share');
-            if(!btn) return;
+        window.submitChatForm = async (e, inputId) => {
+            e.preventDefault(); const input = document.getElementById(inputId), text = input.value.trim(); if(!text) return;
+            try { 
+                await addDoc(collection(db, 'edumeet', 'public', `chat_${window.eduApp.room.id}`), { 
+                    uid: window.eduApp.user.uid, 
+                    name: window.eduApp.user.name, 
+                    emailVerified: window.eduApp.user.emailVerified,
+                    text, time: Date.now(), type: 'text' 
+                }); 
+                input.value = ''; 
+            } catch(e) {}
+        }
 
-            const isOwner = window.eduApp.room?.ownerId === window.eduApp.user?.uid;
-            const state = window.eduApp.cinemaState || {};
-
-            btn.className = 'px-3 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 whitespace-nowrap shadow-sm w-full md:w-auto justify-center text-white ';
-
-            if (state.isScreenSharing) {
-                if (isOwner || state.screenSharerUid === window.eduApp.user.uid) {
-                    btn.classList.add('bg-red-600', 'hover:bg-red-700');
-                    txt.innerText = 'Dừng chia sẻ';
-                } else {
-                    btn.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-50');
-                    txt.innerText = 'Đang có người chia sẻ';
+        window.renderChat = (msgs, boxId) => {
+            const box = document.getElementById(boxId); if(!box) return;
+            if(msgs.length === 0) { box.innerHTML = `<div class="text-center text-gray-500 mt-10 text-[13px]">Chưa có tin nhắn nào</div>`; return; }
+            box.innerHTML = msgs.map(m => {
+                if(m.type === 'system') {
+                    return `<div class="flex justify-center my-2"><span class="bg-gray-200/50 text-gray-500 px-3 py-1 rounded-full text-[10px] font-bold border border-gray-300 shadow-sm">${m.text}</span></div>`;
                 }
+                const isMe = m.uid === window.eduApp.user.uid;
+                const isOwner = m.uid === window.eduApp.room?.ownerId;
+                const verifiedIcon = renderVerifiedBadge(m.emailVerified);
+                const ownerIcon = isOwner ? '<i class="ph-fill ph-crown text-yellow-500 ml-1" title="Chủ phòng"></i>' : '';
+
+                const isCinema = boxId === 'cinema-chat-box';
+                const meBg = isCinema ? 'bg-purple-600' : 'bg-blue-600';
+                const otherBg = isCinema ? 'bg-[#2c2c2e] text-gray-200 border-white/5' : 'bg-gray-100 text-gray-800 border-gray-200';
+
+                return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2">
+                    <span class="text-[10px] font-bold text-gray-400 mb-1 px-2 flex items-center cursor-pointer hover:underline" onclick="window.openUserProfile('${m.uid}')">${isMe ? 'Bạn' : m.name}${isMe ? '' : verifiedIcon}${isMe ? '' : ownerIcon}</span>
+                    <div class="px-4 py-2.5 rounded-2xl max-w-[85%] text-[14px] font-medium leading-snug shadow-sm ${isMe ? `${meBg} text-white rounded-tr-sm` : `${otherBg} rounded-tl-sm border`}">${m.text}</div>
+                </div>`;
+            }).join(''); box.scrollTop = box.scrollHeight;
+        }
+
+        window.toggleMobileChat = (category) => { 
+            const panelId = category === 'cinema' ? 'cinema-panel' : 'chat-panel';
+            const panel = document.getElementById(panelId);
+            if(panel) panel.classList.toggle('translate-x-full'); 
+            
+            if(window.eduApp.unreadChatCount > 0) {
+                window.switchRightTab('chat', category);
+            }
+        }
+
+        window.updateMediaButtonsUI = () => {
+            const btnMic = document.getElementById('btn-mic'), iconMic = document.getElementById('icon-mic');
+            if(btnMic) btnMic.className = window.eduApp.micEnabled ? 'w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center transition shadow-sm border border-blue-200' : 'w-10 h-10 rounded-xl bg-red-100/50 text-red-500 flex items-center justify-center transition border border-red-200/50';
+            if(iconMic) iconMic.className = window.eduApp.micEnabled ? 'ph-bold ph-microphone text-xl' : 'ph-bold ph-microphone-slash text-xl';
+            
+            const btnCam = document.getElementById('btn-cam'), iconCam = document.getElementById('icon-cam');
+            if(btnCam) btnCam.className = window.eduApp.camEnabled ? 'w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center transition shadow-sm border border-blue-200' : 'w-10 h-10 rounded-xl bg-red-100/50 text-red-500 flex items-center justify-center transition border border-red-200/50';
+            if(iconCam) iconCam.className = window.eduApp.camEnabled ? 'ph-bold ph-video-camera text-xl' : 'ph-bold ph-video-camera-slash text-xl';
+        }
+
+        window.toggleMic = async () => {
+            window.eduApp.micEnabled = !window.eduApp.micEnabled;
+            window.updateMediaButtonsUI();
+            
+            if(window.eduApp.micEnabled) {
+                 const currentAudio = window.eduApp.localStream?.getAudioTracks()[0];
+                 if(!currentAudio || currentAudio.label === '') {
+                     try {
+                         const s = await navigator.mediaDevices.getUserMedia({audio: true});
+                         const newTrack = s.getAudioTracks()[0];
+                         if(currentAudio) window.eduApp.localStream.removeTrack(currentAudio);
+                         window.eduApp.localStream.addTrack(newTrack);
+                         
+                         // Cập nhật track gửi đi cho các người dùng khác
+                         Object.values(window.eduApp.calls).forEach(call => {
+                             call.peerConnection?.getSenders().forEach(sender => {
+                                 if(sender.track?.kind === 'audio') sender.replaceTrack(newTrack);
+                             });
+                         });
+                     } catch(e) {
+                         window.showToast('Không thể kết nối Micro', 'error');
+                         window.eduApp.micEnabled = false;
+                         window.updateMediaButtonsUI();
+                         return;
+                     }
+                 } else {
+                     currentAudio.enabled = true;
+                 }
             } else {
-                if (window.eduApp.pendingRequest) {
-                    btn.classList.add('bg-orange-500', 'hover:bg-orange-600');
-                    txt.innerText = 'Đang chờ duyệt (Hủy)';
-                } else {
-                    btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    txt.innerText = isOwner ? 'Chia sẻ màn hình' : 'Xin chia sẻ màn hình';
-                }
+                 const currentAudio = window.eduApp.localStream?.getAudioTracks()[0];
+                 if(currentAudio) currentAudio.enabled = false;
+            }
+
+            if(window.eduApp.room) {
+                updateDoc(doc(db, 'edumeet', 'public', `presence_${window.eduApp.room.id}`, window.eduApp.user.uid), { isMicOn: window.eduApp.micEnabled }).catch(()=>{});
             }
         };
 
-        window.startCinemaListeners = (roomId) => {
-            const isOwner = window.eduApp.room.ownerId === window.eduApp.user.uid;
-
-            // 1. Lắng nghe trạng thái chung của phòng
-            window.eduApp.unsubRoomDetails = onSnapshot(doc(db, 'edumeet', 'public', 'cinema_rooms', roomId), (docSnap) => {
-                if(!docSnap.exists()) { 
-                    window.showToast('Rạp đã bị đóng.', 'error'); 
-                    window.forceLeaveRoom('cinema'); 
-                } 
-                else { 
-                    const data = docSnap.data(); 
-                    window.eduApp.cinemaState = data;
-                    window.renderShareButton();
-
-                    if (data.isScreenSharing) {
-                        const iframe = document.getElementById('cinema-iframe');
-                        if (iframe) iframe.classList.add('hidden');
-                        document.getElementById('cinema-placeholder').classList.add('hidden');
-                    } else {
-                        if (window.eduApp.isScreenSharing && data.screenSharerUid !== window.eduApp.user.uid) {
-                            window.stopLocalScreenShareOnly();
-                        }
-
-                        document.getElementById('cinema-screen-video').classList.add('hidden');
-                        document.getElementById('cinema-screen-video').srcObject = null;
-
-                        if (data.iframeUrl && data.iframeUrl.trim() !== '') {
-                            const frame = document.getElementById('cinema-iframe');
-                            if(frame.src !== data.iframeUrl) frame.src = data.iframeUrl;
-                            frame.classList.remove('hidden');
-                            document.getElementById('cinema-placeholder').classList.add('hidden');
-                        } else {
-                            const frame = document.getElementById('cinema-iframe');
-                            if(frame) frame.classList.add('hidden');
-                            document.getElementById('cinema-placeholder').classList.remove('hidden');
-                        }
-                    }
-                }
-            }, err => console.warn(err));
-
-            // 2. Yêu cầu chia sẻ màn hình
-            if (isOwner) {
-                window.eduApp.unsubRequests = onSnapshot(collection(db, 'edumeet', 'public', `screen_requests_${roomId}`), snap => {
-                    const reqs = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(r => r.status === 'pending');
-                    document.getElementById('req-count').innerText = reqs.length;
-                    document.getElementById('cinema-requests-list').innerHTML = reqs.map(r => `
-                        <div class="flex justify-between items-center bg-black/40 p-2 rounded border border-white/5">
-                            <span class="text-xs text-white truncate max-w-[120px]" title="${r.name}">${r.name}</span>
-                            <div class="flex gap-1">
-                                <button onclick="window.approveShare('${r.id}')" class="bg-green-600 hover:bg-green-500 text-white p-1 rounded text-xs px-2 shadow-sm">Duyệt</button>
-                                <button onclick="window.rejectShare('${r.id}')" class="bg-red-600 hover:bg-red-500 text-white p-1 rounded text-xs px-2 shadow-sm">Bỏ</button>
-                            </div>
-                        </div>
-                    `).join('');
-                });
-            } 
-            else {
-                window.eduApp.unsubMyRequest = onSnapshot(doc(db, 'edumeet', 'public', `screen_requests_${roomId}`, window.eduApp.user.uid), async snap => {
-                    if(snap.exists()) {
-                        const data = snap.data();
-                        if (data.status === 'approved' && !window.eduApp.isScreenSharing) {
-                            try {
-                                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-                                window.executeScreenShare(stream);
-                                window.showToast('Bắt đầu chia sẻ màn hình!');
-                            } catch(e) {
-                                window.showToast('Bạn đã hủy chia sẻ màn hình', 'error');
-                            }
-                            deleteDoc(snap.ref).catch(e=>{});
-                            window.eduApp.pendingRequest = false;
-                            window.renderShareButton();
-                        } else if (data.status === 'rejected') {
-                            window.eduApp.pendingRequest = false;
-                            deleteDoc(snap.ref).catch(e=>{});
-                            window.showToast('Chủ phòng đã TỪ CHỐI yêu cầu chia sẻ!', 'error');
-                            window.renderShareButton();
-                        }
-                    }
-                });
-            }
-
-            // Lắng nghe người tham gia
-            window.eduApp.unsubPresence = onSnapshot(collection(db, 'edumeet', 'public', `presence_${roomId}`), (snap) => {
-                window.eduApp.roomUsers = snap.docs.map(d => ({uid: d.id, ...d.data()}));
-                const list = document.getElementById('cinema-users-list');
-                if(list) {
-                    list.innerHTML = window.eduApp.roomUsers.map(u => {
-                        const verifiedIcon = renderVerifiedBadge(u.emailVerified);
-                        const isRoomOwner = u.uid === window.eduApp.room?.ownerId;
-                        return `
-                        <div class="flex items-center gap-1.5 bg-[#2c2c2e] border border-white/5 px-2 py-1 rounded-lg shrink-0 cursor-pointer hover:bg-white/10 transition" onclick="window.openUserProfile('${u.uid}')">
-                            <img src="${u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed='+u.uid}" class="w-5 h-5 rounded-full">
-                            <span class="text-[11px] font-bold text-gray-200 whitespace-nowrap">${u.name}${verifiedIcon} ${isRoomOwner ? '<i class="ph-fill ph-crown text-yellow-500"></i>' : ''}</span>
-                        </div>`;
-                    }).join('');
-                }
-                
-                if (window.eduApp.peer && !window.eduApp.peer.disconnected) {
-                    window.eduApp.roomUsers.forEach(u => { window.callPeer(u.uid, roomId); });
-                }
-            }, err => console.warn(err));
-
-            // Lắng nghe Chat
-            window.eduApp.unsubChat = onSnapshot(collection(db, 'edumeet', 'public', `chat_${roomId}`), (snap) => {
-                const arr = snap.docs.map(d => ({id: d.id, ...d.data()})); arr.sort((a,b) => a.time - b.time); window.renderChat(arr, 'cinema-chat-box');
-                
-                if(arr.length > 0) {
-                    const lastMsg = arr[arr.length - 1];
-                    if(lastMsg.uid !== window.eduApp.user.uid && lastMsg.time > Date.now() - 2000) {
-                        if(window.eduApp.activeRightTab !== 'chat') {
-                            window.eduApp.unreadChatCount++;
-                            window.updateChatBadge('cinema');
-                        }
-                    }
-                }
-            }, err => console.warn(err));
-        }
-
-        window.updateCinemaIframe = async () => {
-            let url = document.getElementById('cinema-url-input').value.trim();
-            if(!url) return;
+        window.toggleCam = async () => {
+            window.eduApp.camEnabled = !window.eduApp.camEnabled;
+            window.updateMediaButtonsUI();
             
-            // Auto convert Youtube link to Embed link
-            if (url.includes('youtube.com/watch?v=')) {
-                const vid = new URL(url).searchParams.get('v');
-                url = `https://www.youtube.com/embed/${vid}?autoplay=1`;
-            } else if (url.includes('youtu.be/')) {
-                const vid = url.split('youtu.be/')[1].split('?')[0];
-                url = `https://www.youtube.com/embed/${vid}?autoplay=1`;
-            }
+            if(window.eduApp.camEnabled) {
+                 const currentVideo = window.eduApp.localStream?.getVideoTracks()[0];
+                 if(!currentVideo || currentVideo.label === '') {
+                     try {
+                         const s = await navigator.mediaDevices.getUserMedia({video: true});
+                         const newTrack = s.getVideoTracks()[0];
+                         if(currentVideo) window.eduApp.localStream.removeTrack(currentVideo);
+                         window.eduApp.localStream.addTrack(newTrack);
+                         
+                         const localVideoEl = document.getElementById('local-video');
+                         if(localVideoEl) {
+                             localVideoEl.srcObject = window.eduApp.localStream;
+                             localVideoEl.play().catch(()=>{});
+                         }
 
-            try {
-                await updateDoc(doc(db, 'edumeet', 'public', 'cinema_rooms', window.eduApp.room.id), { iframeUrl: url });
-                window.showToast('Đã phát Web/Youtube cho tất cả mọi người');
-                document.getElementById('cinema-url-input').value = '';
-            } catch(e) { window.showToast('Lỗi dán link', 'error'); }
-        }
-
-        // Logic Xử lý duyệt share
-        window.approveShare = async (targetUid) => {
-            try { await updateDoc(doc(db, 'edumeet', 'public', `screen_requests_${window.eduApp.room.id}`, targetUid), { status: 'approved' }); } catch(e){}
-        }
-        window.rejectShare = async (targetUid) => {
-            try { await updateDoc(doc(db, 'edumeet', 'public', `screen_requests_${window.eduApp.room.id}`, targetUid), { status: 'rejected' }); } catch(e){}
-        }
-
-        window.handleScreenShareClick = () => {
-            const isOwner = window.eduApp.room.ownerId === window.eduApp.user.uid;
-            const state = window.eduApp.cinemaState || {};
-
-            if (isOwner) {
-                if (state.isScreenSharing) {
-                    window.stopScreenShareGlobal(); // Dừng tất cả
-                } else {
-                    window.startScreenCapture(true); // Owner tự share trực tiếp
-                }
+                         Object.values(window.eduApp.calls).forEach(call => {
+                             call.peerConnection?.getSenders().forEach(sender => {
+                                 if(sender.track?.kind === 'video') sender.replaceTrack(newTrack);
+                             });
+                         });
+                     } catch(e) {
+                         window.showToast('Không thể kết nối Camera', 'error');
+                         window.eduApp.camEnabled = false;
+                         window.updateMediaButtonsUI();
+                         return;
+                     }
+                 } else {
+                     currentVideo.enabled = true;
+                 }
             } else {
-                if (state.isScreenSharing) {
-                    if (state.screenSharerUid === window.eduApp.user.uid) {
-                        window.stopScreenShareGlobal(); // Dừng luồng của mình
-                    } else {
-                        // Nút đã bị disabled nhưng lỡ bấm
-                        window.showToast('Đang có người khác chia sẻ!', 'error');
-                    }
-                } else {
-                    if (window.eduApp.pendingRequest) {
-                        window.cancelScreenShareRequest(); // Hủy yêu cầu
-                    } else {
-                        window.startScreenCapture(false); // Khách gửi yêu cầu
-                    }
-                }
+                 const currentVideo = window.eduApp.localStream?.getVideoTracks()[0];
+                 if(currentVideo) currentVideo.enabled = false;
             }
-        }
 
-        window.startScreenCapture = async (isOwner) => {
-            if (isOwner) {
-                try {
-                    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-                    window.executeScreenShare(stream);
-                } catch(e) {
-                    if (e.name === 'NotAllowedError' || (e.message && e.message.includes('display-capture'))) {
-                        window.showToast('Môi trường xem trước chặn Chia sẻ màn hình. Vui lòng tải file HTML về máy!', 'error');
-                    } else {
-                        window.showToast('Đã hủy chia sẻ', 'error');
-                    }
-                }
-            } else {
-                window.eduApp.pendingRequest = true;
-                window.renderShareButton();
-                setDoc(doc(db, 'edumeet', 'public', `screen_requests_${window.eduApp.room.id}`, window.eduApp.user.uid), {
-                    uid: window.eduApp.user.uid, name: window.eduApp.user.name, status: 'pending', time: Date.now()
-                }).then(()=>{
-                    window.showToast('Đã gửi yêu cầu đến Chủ phòng. Vui lòng chờ duyệt!');
-                }).catch(e=>{});
+            if(window.eduApp.room) {
+                updateDoc(doc(db, 'edumeet', 'public', `presence_${window.eduApp.room.id}`, window.eduApp.user.uid), { isCamOn: window.eduApp.camEnabled }).catch(()=>{});
             }
-        }
-
-        window.executeScreenShare = (stream) => {
-            stream.getVideoTracks()[0].onended = () => {
-                if (window.eduApp.isScreenSharing) window.stopScreenShareGlobal();
-            };
-
-            window.eduApp.screenStream = stream;
-            window.eduApp.isScreenSharing = true;
-            
-            // Push to peers
-            window.eduApp.roomUsers.forEach(u => {
-                if(u.uid !== window.eduApp.user.uid) window.callPeer(u.uid, window.eduApp.room.id);
-            });
-
-            // Update Firebase
-            updateDoc(doc(db, 'edumeet', 'public', 'cinema_rooms', window.eduApp.room.id), { 
-                isScreenSharing: true, screenSharerUid: window.eduApp.user.uid 
-            }).catch(e=>{});
-
-            const videoEl = document.getElementById('cinema-screen-video');
-            videoEl.srcObject = stream;
-            videoEl.classList.remove('hidden');
-            const iframe = document.getElementById('cinema-iframe');
-            if(iframe) iframe.classList.add('hidden');
-            document.getElementById('cinema-placeholder').classList.add('hidden');
-            videoEl.play().catch(e=>{});
-        }
-
-        window.stopScreenShareGlobal = () => {
-            // Firebase Update
-            updateDoc(doc(db, 'edumeet', 'public', 'cinema_rooms', window.eduApp.room.id), { 
-                isScreenSharing: false, screenSharerUid: null 
-            }).catch(e=>{});
-        }
-
-        window.stopLocalScreenShareOnly = () => {
-            if(window.eduApp.screenStream) {
-                window.eduApp.screenStream.getTracks().forEach(t => t.stop());
-                window.eduApp.screenStream = null;
-            }
-            window.eduApp.isScreenSharing = false;
-            
-            // Resume Local Cam/Mic to Peers if any
-            window.eduApp.roomUsers.forEach(u => {
-                if(u.uid !== window.eduApp.user.uid) window.callPeer(u.uid, window.eduApp.room.id);
-            });
-        }
-
-        window.cancelScreenShareRequest = async () => {
-            window.eduApp.pendingRequest = false;
-            window.renderShareButton();
-            try { await deleteDoc(doc(db, 'edumeet', 'public', `screen_requests_${window.eduApp.room.id}`, window.eduApp.user.uid)); } catch(e){}
-            window.showToast('Đã hủy yêu cầu chia sẻ');
-        }
+        };
 
         // ==========================================
         // 7. LƯU BÀI & MỞ FILE PDF TỪ STORAGE LOCAL
@@ -2541,122 +2384,6 @@
                     </div>
                 </div>
             `).join('');
-        }
-
-        // ==========================================
-        // 8. CHUNG: CHAT & CAMERA
-        // ==========================================
-        window.submitChatForm = async (e, inputId) => {
-            e.preventDefault(); const input = document.getElementById(inputId), text = input.value.trim(); if(!text) return;
-            try { 
-                await addDoc(collection(db, 'edumeet', 'public', `chat_${window.eduApp.room.id}`), { 
-                    uid: window.eduApp.user.uid, 
-                    name: window.eduApp.user.name, 
-                    emailVerified: window.eduApp.user.emailVerified,
-                    text, time: Date.now(), type: 'text' 
-                }); 
-                input.value = ''; 
-            } catch(e) {}
-        }
-
-        window.renderChat = (msgs, boxId) => {
-            const box = document.getElementById(boxId); if(!box) return;
-            if(msgs.length === 0) { box.innerHTML = `<div class="text-center text-gray-500 mt-10 text-[13px]">Chưa có tin nhắn nào</div>`; return; }
-            box.innerHTML = msgs.map(m => {
-                if(m.type === 'system') {
-                    return `<div class="flex justify-center my-2"><span class="bg-gray-200/50 text-gray-500 px-3 py-1 rounded-full text-[10px] font-bold border border-gray-300 shadow-sm">${m.text}</span></div>`;
-                }
-                const isMe = m.uid === window.eduApp.user.uid;
-                const isOwner = m.uid === window.eduApp.room?.ownerId;
-                const verifiedIcon = renderVerifiedBadge(m.emailVerified);
-                const ownerIcon = isOwner ? '<i class="ph-fill ph-crown text-yellow-500 ml-1" title="Chủ phòng"></i>' : '';
-
-                const isCinema = boxId === 'cinema-chat-box';
-                const meBg = isCinema ? 'bg-purple-600' : 'bg-blue-600';
-                const otherBg = isCinema ? 'bg-[#2c2c2e] text-gray-200 border-white/5' : 'bg-gray-100 text-gray-800 border-gray-200';
-
-                return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2">
-                    <span class="text-[10px] font-bold text-gray-400 mb-1 px-2 flex items-center cursor-pointer hover:underline" onclick="window.openUserProfile('${m.uid}')">${isMe ? 'Bạn' : m.name}${isMe ? '' : verifiedIcon}${isMe ? '' : ownerIcon}</span>
-                    <div class="px-4 py-2.5 rounded-2xl max-w-[85%] text-[14px] font-medium leading-snug shadow-sm ${isMe ? `${meBg} text-white rounded-tr-sm` : `${otherBg} rounded-tl-sm border`}">${m.text}</div>
-                </div>`;
-            }).join(''); box.scrollTop = box.scrollHeight;
-        }
-
-        window.toggleMobileChat = (category) => { 
-            const panelId = category === 'cinema' ? 'cinema-panel' : 'chat-panel';
-            const panel = document.getElementById(panelId);
-            if(panel) panel.classList.toggle('translate-x-full'); 
-            
-            // Xóa badge khi mở chat trên mobile
-            if(window.eduApp.unreadChatCount > 0) {
-                window.switchRightTab('chat', category);
-            }
-        }
-
-        // --- Cập nhật nút UI sau khi thay đổi Audio/Video ---
-        window.updateMediaButtonsUI = () => {
-            const btnMic = document.getElementById('btn-mic'), iconMic = document.getElementById('icon-mic'), statusMicLocal = document.getElementById('status-mic-local');
-            if(btnMic) btnMic.className = window.eduApp.micEnabled ? 'w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center transition shadow-sm border border-blue-200' : 'w-10 h-10 rounded-xl bg-red-100/50 text-red-500 flex items-center justify-center transition border border-red-200/50';
-            if(iconMic) iconMic.className = window.eduApp.micEnabled ? 'ph-bold ph-microphone text-xl' : 'ph-bold ph-microphone-slash text-xl';
-            if(statusMicLocal) statusMicLocal.className = window.eduApp.micEnabled ? 'ph-fill ph-microphone text-green-400 text-sm' : 'ph-fill ph-microphone-slash text-red-400 text-sm';
-            
-            const btnCam = document.getElementById('btn-cam'), iconCam = document.getElementById('icon-cam');
-            if(btnCam) btnCam.className = window.eduApp.camEnabled ? 'w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center transition shadow-sm border border-blue-200' : 'w-10 h-10 rounded-xl bg-red-100/50 text-red-500 flex items-center justify-center transition border border-red-200/50';
-            if(iconCam) iconCam.className = window.eduApp.camEnabled ? 'ph-bold ph-video-camera text-xl' : 'ph-bold ph-video-camera-slash text-xl';
-
-            const localVideo = document.getElementById('local-video');
-            const localPlaceholder = document.getElementById('local-video-placeholder');
-            if(localVideo) {
-                if(window.eduApp.camEnabled) { localVideo.classList.remove('hidden'); localPlaceholder.classList.add('hidden'); }
-                else { localVideo.classList.add('hidden'); localPlaceholder.classList.remove('hidden'); }
-            }
-        }
-
-        window.toggleMic = async () => {
-            window.eduApp.micEnabled = !window.eduApp.micEnabled;
-            window.updateMediaButtonsUI();
-            
-            if (window.eduApp.localStream) {
-                const currentAudioTrack = window.eduApp.localStream.getAudioTracks()[0];
-                if (window.eduApp.micEnabled && (!currentAudioTrack || currentAudioTrack.label === "")) {
-                    try {
-                        const newStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        const newTrack = newStream.getAudioTracks()[0];
-                        window.eduApp.localStream.removeTrack(currentAudioTrack);
-                        window.eduApp.localStream.addTrack(newTrack);
-                    } catch(e) { window.showToast('Không thể kết nối Micro', 'error'); window.eduApp.micEnabled = false; window.updateMediaButtonsUI(); return; }
-                } else if (currentAudioTrack) {
-                    currentAudioTrack.enabled = window.eduApp.micEnabled;
-                }
-            }
-        }
-
-        window.toggleCam = async () => {
-            window.eduApp.camEnabled = !window.eduApp.camEnabled;
-            window.updateMediaButtonsUI();
-
-            if (window.eduApp.localStream) {
-                const currentVideoTrack = window.eduApp.localStream.getVideoTracks()[0];
-                if (window.eduApp.camEnabled && (!currentVideoTrack || currentVideoTrack.label === "")) {
-                    try {
-                        const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                        const newTrack = newStream.getVideoTracks()[0];
-                        window.eduApp.localStream.removeTrack(currentVideoTrack);
-                        window.eduApp.localStream.addTrack(newTrack);
-                        
-                        Object.values(window.eduApp.calls).forEach(call => {
-                            call.peerConnection.getSenders().forEach(sender => {
-                                if(sender.track && sender.track.kind === 'video') {
-                                    sender.replaceTrack(newTrack);
-                                }
-                            });
-                        });
-
-                    } catch(e) { window.showToast('Không thể kết nối Camera', 'error'); window.eduApp.camEnabled = false; window.updateMediaButtonsUI(); return; }
-                } else if (currentVideoTrack) {
-                    currentVideoTrack.enabled = window.eduApp.camEnabled;
-                }
-            }
         }
     </script>
 </body>
