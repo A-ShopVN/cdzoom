@@ -144,6 +144,20 @@
             display: flex; align-items: center; gap: 4px;
         }
 
+        /* Lớp phủ ngăn tương tác iframe cho Khách */
+        #cinema-blocker {
+            position: absolute; inset: 0;
+            z-index: 50; background: transparent;
+            pointer-events: auto; /* Bắt hết sự kiện chuột của khách */
+        }
+        #cinema-blocker.host {
+            pointer-events: none; /* Chủ phòng có thể thao tác */
+        }
+
+        /* Tùy chỉnh input Poll */
+        .poll-grid-input { width: 36px; height: 44px; text-align: center; font-size: 1.25rem; font-weight: 700; border: 2px solid #e5e7eb; border-radius: 8px; outline: none; transition: border 0.2s;}
+        .poll-grid-input:focus { border-color: #007aff; }
+
         /* Mobile Adjustments */
         @media (max-width: 768px) { 
             .mobile-hidden { display: none !important; } 
@@ -637,10 +651,13 @@
                         </p>
                     </div>
                     
+                    <!-- Lớp phủ (blocker) ngăn chặn Khách tương tác Iframe -->
+                    <div id="cinema-blocker" class="absolute inset-0 z-50 bg-transparent host"></div>
+                    
                     <iframe id="cinema-iframe" src="" class="absolute inset-0 w-full h-full border-none hidden" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
                     <!-- Video dùng để phát Screen Share -->
-                    <video id="cinema-screen-video" autoplay playsinline controls class="absolute inset-0 w-full h-full object-contain hidden z-40 bg-black"></video>
+                    <video id="cinema-screen-video" autoplay playsinline class="absolute inset-0 w-full h-full object-contain hidden z-40 bg-black"></video>
                 </div>
             </section>
 
@@ -771,6 +788,7 @@
         </div>
     </div>
 
+    <!-- MODAL TẠO BÌNH CHỌN -->
     <div id="modal-create-poll" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4">
         <div class="glass-card max-w-sm w-full p-6 text-gray-900 shadow-2xl border border-white">
             <div class="flex justify-between items-center mb-4">
@@ -780,14 +798,14 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Câu hỏi (Tùy chọn)</label>
-                    <input type="text" id="poll-question" class="ios-input bg-gray-50 p-3 shadow-inner" placeholder="VD: Chọn đáp án đúng cho Câu 1" />
+                    <input type="text" id="poll-question" class="ios-input bg-gray-50 p-3 shadow-inner" placeholder="VD: Câu 1" />
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Loại câu hỏi</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Định dạng thi</label>
                     <select id="poll-type" class="ios-input bg-gray-50 p-3 font-semibold shadow-inner">
-                        <option value="abcd">Trắc nghiệm A, B, C, D</option>
-                        <option value="tf">Đúng / Sai (4 ý)</option>
-                        <option value="text">Câu trả lời ngắn</option>
+                        <option value="abcd">Trắc nghiệm chọn 1 (A, B, C, D)</option>
+                        <option value="tf">Đúng / Sai (4 ý a,b,c,d)</option>
+                        <option value="text">Trả lời ngắn (Ghi 4 ô)</option>
                     </select>
                 </div>
                 <div>
@@ -1319,6 +1337,54 @@
             } else { window.showToast('Mã PIN không đúng!', 'error'); }
         }
 
+        // Tách hàm dọn dẹp để tái sử dụng cho tính năng Auto-kick
+        window.forceLeaveRoom = (category) => {
+            const roomId = window.eduApp.room?.id;
+            if(!roomId) return;
+            
+            if(window.eduApp.unsubStrokes) window.eduApp.unsubStrokes();
+            if(window.eduApp.unsubChat) window.eduApp.unsubChat();
+            if(window.eduApp.unsubRoomDetails) window.eduApp.unsubRoomDetails();
+            if(window.eduApp.unsubPolls) window.eduApp.unsubPolls();
+            if(window.eduApp.unsubPresence) window.eduApp.unsubPresence();
+            if(window.eduApp.unsubRequests) window.eduApp.unsubRequests();
+            if(window.eduApp.unsubMyRequest) window.eduApp.unsubMyRequest();
+            
+            if (window.eduApp.cinemaState?.screenSharerUid === window.eduApp.user.uid) {
+                try { updateDoc(doc(db, 'edumeet', 'public', 'cinema_rooms', roomId), { isScreenSharing: false, screenSharerUid: null }); } catch(e){}
+            }
+            if(window.eduApp.screenStream) { window.eduApp.screenStream.getTracks().forEach(t => t.stop()); window.eduApp.screenStream = null; }
+            if(window.eduApp.pendingScreenStream) { window.eduApp.pendingScreenStream.getTracks().forEach(t => t.stop()); window.eduApp.pendingScreenStream = null; }
+            
+            window.eduApp.isScreenSharing = false;
+            window.eduApp.pendingRequest = false;
+            document.querySelectorAll('audio[id^="audio-"]').forEach(el => el.remove());
+            
+            if(window.eduApp.peer) window.eduApp.peer.destroy(); 
+            
+            const bgPdf = document.getElementById('bg-pdf');
+            if(bgPdf) bgPdf.src = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+            
+            const iframeEl = document.getElementById('cinema-iframe');
+            if(iframeEl) { iframeEl.src = ""; iframeEl.classList.add('hidden'); }
+            
+            if(window.eduApp.localStream) {
+                window.eduApp.localStream.getTracks().forEach(t => t.stop());
+                window.eduApp.localStream = null;
+            }
+            window.eduApp.camEnabled = false; window.eduApp.micEnabled = false;
+            window.updateMediaButtonsUI();
+
+            try { deleteDoc(doc(db, 'edumeet', 'public', `presence_${roomId}`, window.eduApp.user.uid)); } catch(e){}
+            
+            localStorage.removeItem('eduApp_roomId');
+            localStorage.removeItem('eduApp_roomCat');
+            window.eduApp.room = null;
+
+            window.switchView('dashboard'); 
+            window.switchDashTab(category === 'learning' ? 'home' : 'cinema');
+        }
+
         // =================================================================
         // HỆ THỐNG WEBRTC: CHUẨN BỊ STREAM TRỐNG HOẶC CAMERA/MIC THẬT SỰ
         // =================================================================
@@ -1397,8 +1463,7 @@
             const roomCat = localStorage.getItem('eduApp_roomCat');
             
             if (roomCat === 'cinema') {
-                const hasVideo = remoteStream.getVideoTracks().length > 0;
-                if (hasVideo) {
+                if (window.eduApp.cinemaState?.isScreenSharing && window.eduApp.cinemaState?.screenSharerUid === uid) {
                     const videoEl = document.getElementById('cinema-screen-video');
                     videoEl.srcObject = remoteStream;
                     videoEl.classList.remove('hidden');
@@ -1406,7 +1471,7 @@
                     if(iframe) iframe.classList.add('hidden');
                     document.getElementById('cinema-placeholder').classList.add('hidden');
                     videoEl.play().catch(e=>{});
-                } 
+                }
                 window.addRemoteAudioOnly(uid, remoteStream);
             } else {
                 window.addRemoteVideo(uid, remoteStream);
@@ -1547,19 +1612,21 @@
                 const isOwner = roomData.ownerId === window.eduApp.user.uid;
                 document.getElementById('btn-delete-cinema').style.display = isOwner ? 'flex' : 'none';
                 
-                // UI Phân quyền Khách vs Chủ
                 const urlWrapper = document.getElementById('cinema-url-wrapper');
                 const updateBtn = document.getElementById('btn-update-url');
                 const divider = document.getElementById('cinema-divider');
+                const blocker = document.getElementById('cinema-blocker');
                 const reqArea = document.getElementById('cinema-requests-area');
 
                 if (isOwner) {
                     urlWrapper.classList.remove('hidden'); updateBtn.classList.remove('hidden'); divider.classList.remove('hidden');
                     reqArea.classList.remove('hidden'); reqArea.classList.add('flex');
-                    updateDoc(doc(db, 'edumeet', 'public', 'cinema_rooms', roomId), { isScreenSharing: false, screenSharerUid: null });
+                    if (blocker) blocker.classList.add('host');
+                    updateDoc(doc(db, 'edumeet', 'public', 'cinema_rooms', roomId), { isScreenSharing: false, screenSharerUid: null }).catch(e=>{});
                 } else {
                     urlWrapper.classList.add('hidden'); updateBtn.classList.add('hidden'); divider.classList.add('hidden');
                     reqArea.classList.add('hidden'); reqArea.classList.remove('flex');
+                    if (blocker) blocker.classList.remove('host');
                 }
 
                 window.switchView('cinema');
@@ -1579,50 +1646,8 @@
 
         window.promptLeaveRoom = (category) => {
             window.openConfirmModal("Rời phòng", "Bạn có chắc chắn muốn rời khỏi phòng này không?", async () => {
-                const roomId = window.eduApp.room.id;
-                await window.sendSystemMessage(roomId, `${window.eduApp.user.name} đã rời phòng`);
-
-                if(window.eduApp.unsubStrokes) window.eduApp.unsubStrokes();
-                if(window.eduApp.unsubChat) window.eduApp.unsubChat();
-                if(window.eduApp.unsubRoomDetails) window.eduApp.unsubRoomDetails();
-                if(window.eduApp.unsubPolls) window.eduApp.unsubPolls();
-                if(window.eduApp.unsubPresence) window.eduApp.unsubPresence();
-                if(window.eduApp.unsubRequests) window.eduApp.unsubRequests();
-                if(window.eduApp.unsubMyRequest) window.eduApp.unsubMyRequest();
-                
-                // Cleanup screen share
-                if (window.eduApp.cinemaState?.screenSharerUid === window.eduApp.user.uid) {
-                    try { await updateDoc(doc(db, 'edumeet', 'public', 'cinema_rooms', roomId), { isScreenSharing: false, screenSharerUid: null }); } catch(e){}
-                }
-                if(window.eduApp.screenStream) { window.eduApp.screenStream.getTracks().forEach(t => t.stop()); window.eduApp.screenStream = null; }
-                if(window.eduApp.pendingScreenStream) { window.eduApp.pendingScreenStream.getTracks().forEach(t => t.stop()); window.eduApp.pendingScreenStream = null; }
-                
-                window.eduApp.isScreenSharing = false;
-                window.eduApp.pendingRequest = false;
-                document.querySelectorAll('audio[id^="audio-"]').forEach(el => el.remove());
-                
-                if(window.eduApp.peer) window.eduApp.peer.destroy(); 
-                
-                const bgPdf = document.getElementById('bg-pdf');
-                if(bgPdf) bgPdf.src = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-                
-                const iframeEl = document.getElementById('cinema-iframe');
-                if(iframeEl) { iframeEl.src = ""; iframeEl.classList.add('hidden'); }
-                
-                if(window.eduApp.localStream) {
-                    window.eduApp.localStream.getTracks().forEach(t => t.stop());
-                    window.eduApp.localStream = null;
-                }
-                window.eduApp.camEnabled = false; window.eduApp.micEnabled = false;
-                window.updateMediaButtonsUI();
-
-                try { await deleteDoc(doc(db, 'edumeet', 'public', `presence_${roomId}`, window.eduApp.user.uid)); } catch(e){}
-                
-                localStorage.removeItem('eduApp_roomId');
-                localStorage.removeItem('eduApp_roomCat');
-
-                window.switchView('dashboard'); 
-                window.switchDashTab(category === 'learning' ? 'home' : 'cinema');
+                await window.sendSystemMessage(window.eduApp.room.id, `${window.eduApp.user.name} đã rời phòng`);
+                window.forceLeaveRoom(category);
             });
         }
 
@@ -1637,9 +1662,6 @@
 
         window.copyRoomCode = (category) => { navigator.clipboard.writeText(window.eduApp.room.id); window.showToast('Đã copy mã: ' + window.eduApp.room.id); }
 
-        // ==========================================
-        // 5. LOGIC LỚP HỌC (LEARNING) & CHAT
-        // ==========================================
         window.switchRightTab = (tab, category) => {
             window.eduApp.activeRightTab = tab;
             const prefix = category === 'cinema' ? 'cinema-' : '';
@@ -1713,9 +1735,8 @@
         window.startLearningListeners = (roomId) => {
             window.eduApp.unsubRoomDetails = onSnapshot(doc(db, 'edumeet', 'public', 'rooms', roomId), (docSnap) => {
                 if(!docSnap.exists()) { 
-                    window.showToast('Lớp học đã bị đóng.', 'error'); 
-                    localStorage.removeItem('eduApp_roomId');
-                    window.promptLeaveRoom('learning'); 
+                    window.showToast('Lớp học đã bị đóng bởi Giáo viên.', 'error'); 
+                    window.forceLeaveRoom('learning'); 
                 } 
                 else { 
                     const data = docSnap.data(); 
@@ -1806,6 +1827,9 @@
             } catch(e) { bgImg.src = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="; }
         }
 
+        // ==========================================
+        // HỆ THỐNG BÌNH CHỌN (POLL) MỚI
+        // ==========================================
         window.createPoll = async () => {
             const q = document.getElementById('poll-question').value || 'Câu hỏi nhanh';
             const type = document.getElementById('poll-type').value;
@@ -1817,8 +1841,8 @@
                 const modal = document.getElementById('modal-create-poll');
                 modal.classList.add('hidden'); modal.classList.remove('flex');
                 document.getElementById('poll-question').value = '';
-                window.switchRightTab('vote', 'learning'); window.showToast('Đã bắt đầu bình chọn!');
-            } catch(e) { window.showToast('Lỗi tạo bình chọn', 'error'); }
+                window.switchRightTab('vote', 'learning'); window.showToast('Đã bắt đầu câu hỏi!');
+            } catch(e) { window.showToast('Lỗi tạo câu hỏi', 'error'); }
         }
 
         window.submitVote = async (pollId, answer) => {
@@ -1827,14 +1851,29 @@
                 const pDoc = await getDoc(pollRef);
                 if(pDoc.exists() && pDoc.data().status === 'active') {
                     await updateDoc(pollRef, { [`votes.${window.eduApp.user.uid}`]: answer });
-                    window.showToast('Đã ghi nhận!');
-                } else { window.showToast('Bình chọn đã kết thúc!', 'error'); }
+                    window.showToast('Đã nộp bài thành công!');
+                } else { window.showToast('Thời gian làm bài đã kết thúc!', 'error'); }
             } catch(e) {}
         }
 
-        window.promptTextVote = (pollId) => {
-            const ans = prompt("Nhập câu trả lời của bạn (sẽ hiển thị cho mọi người):");
-            if(ans !== null && ans.trim() !== "") { window.submitVote(pollId, ans.trim()); }
+        window.submitTfVote = (pollId) => {
+            let ans = [];
+            for(let i=0; i<4; i++) {
+                const val = document.querySelector(`input[name="tf_${pollId}_${i}"]:checked`)?.value;
+                if(!val) return window.showToast(`Bạn chưa chọn Đúng/Sai cho ý ${['A','B','C','D'][i]}`, 'error');
+                ans.push(val);
+            }
+            window.submitVote(pollId, ans.join('-'));
+        }
+
+        window.submitGridVote = (pollId) => {
+            let ans = "";
+            for(let i=0; i<4; i++) {
+                const val = document.getElementById(`grid_${pollId}_${i}`).value.trim();
+                ans += val || " "; 
+            }
+            if(ans.trim().length === 0) return window.showToast('Bạn chưa điền đáp án nào!', 'error');
+            window.submitVote(pollId, ans.trim());
         }
 
         window.endPoll = async (pollId) => {
@@ -1844,7 +1883,7 @@
         window.renderPolls = () => {
             const list = document.getElementById('poll-list');
             if(!list) return;
-            if(window.eduApp.polls.length === 0) { list.innerHTML = `<div class="text-center text-gray-400 mt-10 text-sm font-medium">Chưa có bình chọn nào.</div>`; return; }
+            if(window.eduApp.polls.length === 0) { list.innerHTML = `<div class="text-center text-gray-400 mt-10 text-sm font-medium">Chưa có câu hỏi nào.</div>`; return; }
             
             const isOwner = window.eduApp.room?.ownerId === window.eduApp.user.uid;
 
@@ -1861,19 +1900,39 @@
 
                 if (isActive) {
                     const myVote = (p.votes || {})[window.eduApp.user.uid];
+                    
                     if (p.type === 'abcd') {
                         html += `<div class="grid grid-cols-4 gap-2 mb-2">
                             ${['A', 'B', 'C', 'D'].map(opt => `<button onclick="window.submitVote('${p.id}', '${opt}')" class="py-2 rounded-lg font-bold border ${myVote === opt ? 'bg-blue-600 text-white border-blue-600 shadow-inner' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'} transition">${opt}</button>`).join('')}
                         </div>`;
-                    } else if (p.type === 'tf') {
-                        html += `<div class="flex flex-col gap-2 mb-2">
-                            ${['Đúng 4 ý', 'Sai 1 ý', 'Sai 2 ý', 'Sai 3 ý trở lên'].map(opt => `<button onclick="window.submitVote('${p.id}', '${opt}')" class="py-2.5 rounded-lg font-bold border ${myVote === opt ? 'bg-blue-600 text-white border-blue-600 shadow-inner' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'} transition text-[13px]">${opt}</button>`).join('')}
-                        </div>`;
-                    } else if (p.type === 'text') {
-                        html += `<div class="mb-2">
-                            ${myVote ? `<div class="p-2 mb-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm font-medium">Bạn đã nộp: <b>${myVote}</b></div>` : ''}
-                            <button onclick="window.promptTextVote('${p.id}')" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2"><i class="ph-bold ph-pencil-simple"></i> Nhập câu trả lời</button>
-                        </div>`;
+                    } 
+                    else if (p.type === 'tf') {
+                        if(myVote) {
+                            html += `<div class="p-2 mb-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm font-medium text-center tracking-widest font-mono">Đã chọn: <b>${myVote}</b></div>`;
+                        } else {
+                            html += `<div class="flex flex-col gap-2 mb-3">`;
+                            ['Ý A', 'Ý B', 'Ý C', 'Ý D'].forEach((label, idx) => {
+                                html += `<div class="flex justify-between items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                                    <span class="text-sm font-bold text-gray-600">${label}</span>
+                                    <div class="flex gap-4">
+                                        <label class="flex items-center gap-1 text-sm font-semibold text-green-600 cursor-pointer"><input type="radio" name="tf_${p.id}_${idx}" value="Đ" class="w-4 h-4 accent-green-600"> Đúng</label>
+                                        <label class="flex items-center gap-1 text-sm font-semibold text-red-500 cursor-pointer"><input type="radio" name="tf_${p.id}_${idx}" value="S" class="w-4 h-4 accent-red-500"> Sai</label>
+                                    </div>
+                                </div>`;
+                            });
+                            html += `</div><button onclick="window.submitTfVote('${p.id}')" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Nộp bài</button>`;
+                        }
+                    } 
+                    else if (p.type === 'text') {
+                        if(myVote) {
+                            html += `<div class="p-2 mb-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm font-medium text-center tracking-[0.5em] font-mono"><b>${myVote.split('').join(' ')}</b></div>`;
+                        } else {
+                            html += `<div class="flex justify-center gap-2 mb-3">`;
+                            for(let i=0; i<4; i++) {
+                                html += `<input type="text" id="grid_${p.id}_${i}" maxlength="1" class="poll-grid-input" placeholder="-">`;
+                            }
+                            html += `</div><button onclick="window.submitGridVote('${p.id}')" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold hover:bg-blue-700 transition shadow-sm">Nộp bài</button>`;
+                        }
                     }
                     if(isOwner) html += `<button onclick="window.endPoll('${p.id}')" class="w-full text-xs text-red-500 mt-3 font-semibold hover:underline">Kết thúc sớm</button>`;
                 }
@@ -1886,7 +1945,7 @@
                     window.eduApp.roomUsers.forEach(u => {
                         const ans = (p.votes || {})[u.uid];
                         if(ans) {
-                            html += `<div class="flex justify-between items-center text-[13px] bg-gray-50 p-1.5 rounded"><span class="text-gray-700 font-medium">${u.name}</span> <span class="bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded text-[11px] border border-blue-200 break-all ml-2">${ans}</span></div>`;
+                            html += `<div class="flex justify-between items-center text-[13px] bg-gray-50 p-1.5 rounded"><span class="text-gray-700 font-medium">${u.name}</span> <span class="bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded text-[11px] border border-blue-200 tracking-wider">${ans}</span></div>`;
                         } else {
                             html += `<div class="flex justify-between items-center text-[13px] p-1.5"><span class="text-red-500 font-medium">${u.name}</span> <span class="bg-red-50 text-red-500 font-bold px-2 py-0.5 rounded text-[10px] border border-red-100">Chưa nộp</span></div>`;
                         }
@@ -2149,9 +2208,12 @@
         window.startCinemaListeners = (roomId) => {
             const isOwner = window.eduApp.room.ownerId === window.eduApp.user.uid;
 
-            // 1. Lắng nghe trạng thái chung của phòng (Bao gồm Iframe URL và trạng thái Share Screen)
+            // 1. Lắng nghe trạng thái chung của phòng
             window.eduApp.unsubRoomDetails = onSnapshot(doc(db, 'edumeet', 'public', 'cinema_rooms', roomId), (docSnap) => {
-                if(!docSnap.exists()) { window.showToast('Rạp đã đóng.', 'error'); localStorage.removeItem('eduApp_roomId'); window.promptLeaveRoom('cinema'); } 
+                if(!docSnap.exists()) { 
+                    window.showToast('Rạp đã bị đóng.', 'error'); 
+                    window.forceLeaveRoom('cinema'); 
+                } 
                 else { 
                     const data = docSnap.data(); 
                     window.eduApp.cinemaState = data;
@@ -2161,9 +2223,7 @@
                         const iframe = document.getElementById('cinema-iframe');
                         if (iframe) iframe.classList.add('hidden');
                         document.getElementById('cinema-placeholder').classList.add('hidden');
-                        // Video sẽ được hiện khi nhận luồng WebRTC
                     } else {
-                        // Nếu đang chia sẻ mà bị tắt (bởi chủ phòng) -> Tự dọn dẹp luồng máy mình
                         if (window.eduApp.isScreenSharing && data.screenSharerUid !== window.eduApp.user.uid) {
                             window.stopLocalScreenShareOnly();
                         }
@@ -2185,7 +2245,7 @@
                 }
             }, err => console.warn(err));
 
-            // 2. Nếu là Chủ phòng: Lắng nghe danh sách xin duyệt Share Screen
+            // 2. Yêu cầu chia sẻ màn hình
             if (isOwner) {
                 window.eduApp.unsubRequests = onSnapshot(collection(db, 'edumeet', 'public', `screen_requests_${roomId}`), snap => {
                     const reqs = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(r => r.status === 'pending');
@@ -2201,22 +2261,22 @@
                     `).join('');
                 });
             } 
-            // 3. Nếu là Khách: Lắng nghe trạng thái yêu cầu của chính mình
             else {
-                window.eduApp.unsubMyRequest = onSnapshot(doc(db, 'edumeet', 'public', `screen_requests_${roomId}`, window.eduApp.user.uid), snap => {
+                window.eduApp.unsubMyRequest = onSnapshot(doc(db, 'edumeet', 'public', `screen_requests_${roomId}`, window.eduApp.user.uid), async snap => {
                     if(snap.exists()) {
                         const data = snap.data();
-                        if (data.status === 'approved' && window.eduApp.pendingScreenStream) {
-                            window.executeScreenShare(window.eduApp.pendingScreenStream);
-                            window.eduApp.pendingScreenStream = null;
-                            window.eduApp.pendingRequest = false;
-                            deleteDoc(snap.ref).catch(e=>{});
-                            window.showToast('Chủ phòng đã duyệt chia sẻ!');
-                        } else if (data.status === 'rejected') {
-                            if(window.eduApp.pendingScreenStream) {
-                                window.eduApp.pendingScreenStream.getTracks().forEach(t=>t.stop());
-                                window.eduApp.pendingScreenStream = null;
+                        if (data.status === 'approved' && !window.eduApp.isScreenSharing) {
+                            try {
+                                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                                window.executeScreenShare(stream);
+                                window.showToast('Bắt đầu chia sẻ màn hình!');
+                            } catch(e) {
+                                window.showToast('Bạn đã hủy chia sẻ màn hình', 'error');
                             }
+                            deleteDoc(snap.ref).catch(e=>{});
+                            window.eduApp.pendingRequest = false;
+                            window.renderShareButton();
+                        } else if (data.status === 'rejected') {
                             window.eduApp.pendingRequest = false;
                             deleteDoc(snap.ref).catch(e=>{});
                             window.showToast('Chủ phòng đã TỪ CHỐI yêu cầu chia sẻ!', 'error');
@@ -2313,44 +2373,40 @@
                     if (window.eduApp.pendingRequest) {
                         window.cancelScreenShareRequest(); // Hủy yêu cầu
                     } else {
-                        window.startScreenCapture(false); // Gửi yêu cầu chờ duyệt
+                        window.startScreenCapture(false); // Khách gửi yêu cầu
                     }
                 }
             }
         }
 
-        window.startScreenCapture = async (isAutoApprove) => {
-            try {
-                // Yêu cầu user chọn màn hình (User Gesture yêu cầu)
-                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-                stream.getVideoTracks()[0].onended = () => {
-                    if (window.eduApp.isScreenSharing) window.stopScreenShareGlobal();
-                    else if (window.eduApp.pendingRequest) window.cancelScreenShareRequest();
-                };
-
-                if (isAutoApprove) {
+        window.startScreenCapture = async (isOwner) => {
+            if (isOwner) {
+                try {
+                    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
                     window.executeScreenShare(stream);
-                } else {
-                    window.eduApp.pendingScreenStream = stream;
-                    window.eduApp.pendingRequest = true;
-                    window.renderShareButton();
-                    // Tạo Request trên DB
-                    await setDoc(doc(db, 'edumeet', 'public', `screen_requests_${window.eduApp.room.id}`, window.eduApp.user.uid), {
-                        uid: window.eduApp.user.uid, name: window.eduApp.user.name, status: 'pending', time: Date.now()
-                    });
+                } catch(e) {
+                    if (e.name === 'NotAllowedError' || (e.message && e.message.includes('display-capture'))) {
+                        window.showToast('Môi trường xem trước chặn Chia sẻ màn hình. Vui lòng tải file HTML về máy!', 'error');
+                    } else {
+                        window.showToast('Đã hủy chia sẻ', 'error');
+                    }
+                }
+            } else {
+                window.eduApp.pendingRequest = true;
+                window.renderShareButton();
+                setDoc(doc(db, 'edumeet', 'public', `screen_requests_${window.eduApp.room.id}`, window.eduApp.user.uid), {
+                    uid: window.eduApp.user.uid, name: window.eduApp.user.name, status: 'pending', time: Date.now()
+                }).then(()=>{
                     window.showToast('Đã gửi yêu cầu đến Chủ phòng. Vui lòng chờ duyệt!');
-                }
-
-            } catch (e) {
-                if (e.name === 'NotAllowedError' || (e.message && e.message.includes('display-capture'))) {
-                    window.showToast('Môi trường xem trước chặn Chia sẻ màn hình. Vui lòng tải file HTML về máy để chạy thật!', 'error');
-                } else {
-                    console.warn(e); window.showToast('Đã hủy thao tác', 'error');
-                }
+                }).catch(e=>{});
             }
         }
 
         window.executeScreenShare = (stream) => {
+            stream.getVideoTracks()[0].onended = () => {
+                if (window.eduApp.isScreenSharing) window.stopScreenShareGlobal();
+            };
+
             window.eduApp.screenStream = stream;
             window.eduApp.isScreenSharing = true;
             
@@ -2394,10 +2450,6 @@
         }
 
         window.cancelScreenShareRequest = async () => {
-            if(window.eduApp.pendingScreenStream) {
-                window.eduApp.pendingScreenStream.getTracks().forEach(t=>t.stop());
-                window.eduApp.pendingScreenStream = null;
-            }
             window.eduApp.pendingRequest = false;
             window.renderShareButton();
             try { await deleteDoc(doc(db, 'edumeet', 'public', `screen_requests_${window.eduApp.room.id}`, window.eduApp.user.uid)); } catch(e){}
