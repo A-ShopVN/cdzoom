@@ -702,7 +702,8 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <button id="btn-update-url" onclick="window.updateCinemaIframe()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap hidden shadow-sm">Mở Web / Youtube</button>
-                        <div id="cinema-divider" class="w-px h-6 bg-white/20 mx-1 hidden md:block hidden"></div>
+                        <!-- Đã fix xoá class 'hidden' bị nhân đôi ở dưới đây -->
+                        <div id="cinema-divider" class="w-px h-6 bg-white/20 mx-1 hidden md:block"></div>
                         <button id="btn-screen-share" onclick="window.handleScreenShareClick()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 whitespace-nowrap shadow-sm w-full md:w-auto justify-center">
                             <i class="ph-bold ph-screencast text-lg"></i> <span id="txt-screen-share">Chia sẻ màn hình</span>
                         </button>
@@ -903,6 +904,7 @@
             GoogleAuthProvider, signInWithPopup, signOut, updatePassword
         } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
+        // LƯU Ý: Đây là Config Firebase của bạn, nếu bạn chạy trên môi trường Preview của AI có thể gặp lỗi nếu không trùng khớp Origin. Hãy tải file này về máy tính để test tính năng Video/Gọi điện tốt nhất.
         const firebaseConfig = {
             apiKey: "AIzaSyC_K1FmZsrVoSIIipFovBLGl8lOfKEn7xw",
             authDomain: "cdzoom.firebaseapp.com",
@@ -1017,13 +1019,11 @@
             }
         };
 
-        // Hàm mở/đóng menu phụ bên phải trên điện thoại (đã khôi phục)
         window.toggleMobileChat = (category) => {
             const panelId = category === 'learning' ? 'chat-panel' : 'cinema-panel';
             const panel = document.getElementById(panelId);
             if (panel) {
                 panel.classList.toggle('translate-x-full');
-                // Nếu đang mở panel ra thì reset số đếm thông báo
                 if (!panel.classList.contains('translate-x-full')) {
                     window.eduApp.unreadChatCount = 0;
                     window.updateChatBadge(category);
@@ -1558,6 +1558,12 @@
             const roomId = window.eduApp.room?.id;
             if(!roomId) return;
             
+            // Xoá Memory Leak của setInterval Polls
+            if (window.globalTimer) {
+                clearInterval(window.globalTimer);
+                window.globalTimer = null;
+            }
+
             if(window.eduApp.unsubStrokes) window.eduApp.unsubStrokes();
             if(window.eduApp.unsubChat) window.eduApp.unsubChat();
             if(window.eduApp.unsubRoomDetails) window.eduApp.unsubRoomDetails();
@@ -1585,7 +1591,10 @@
             if(iframeEl) { iframeEl.src = ""; iframeEl.classList.add('hidden'); }
             
             if(window.eduApp.localStream) {
-                window.eduApp.localStream.getTracks().forEach(t => t.stop());
+                window.eduApp.localStream.getTracks().forEach(t => {
+                    t.stop();
+                    window.eduApp.localStream.removeTrack(t);
+                });
                 window.eduApp.localStream = null;
             }
             window.eduApp.camEnabled = false; window.eduApp.micEnabled = false;
@@ -1735,7 +1744,7 @@
                 window.eduApp.peer.on('error', err => {
                     console.warn('PeerJS Error:', err);
                     if (!window.eduApp.hasWarnedWebRTC && (err.type === 'network' || err.type === 'server-error' || err.message?.includes('WebSocket'))) {
-                        window.showToast('Môi trường xem trước chặn gọi Video/Voice. Hãy tải file HTML về máy để chạy thật!', 'error');
+                        window.showToast('Môi trường xem trước chặn gọi Video/Voice. Hãy chạy bằng File độc lập trên máy!', 'error');
                         window.eduApp.hasWarnedWebRTC = true;
                     }
                 });
@@ -2105,6 +2114,7 @@
             
             window.fetchPageBackground(); 
 
+            // Cập nhật Timer đếm ngược (đã Fix lỗi leak)
             if(!window.globalTimer) { 
                 window.globalTimer = setInterval(window.updatePollTimers, 1000); 
             }
@@ -2214,6 +2224,10 @@
         };
 
         window.endPoll = async (pollId) => {
+            // Fix spamming Firebase: Chỉ update nếu status chưa phải là ended
+            const poll = window.eduApp.polls.find(p => p.id === pollId);
+            if(poll && poll.status === 'ended') return; 
+
             try { 
                 await updateDoc(doc(db, 'edumeet', 'public', `polls_${window.eduApp.room.id}`, pollId), { status: 'ended' }); 
             } catch(e){}
@@ -2330,8 +2344,20 @@
         };
 
         window.drawPath = (points, color, size, isEraser) => {
-            if (!points || points.length < 2 || !window.eduApp.ctx) return;
+            if (!points || points.length === 0 || !window.eduApp.ctx) return;
             const ctx = window.eduApp.ctx;
+            
+            // Bắt lỗi không hiển thị dấu chấm (1 điểm duy nhất)
+            if (points.length === 1) {
+                ctx.beginPath();
+                ctx.fillStyle = isEraser ? 'rgba(0,0,0,1)' : color;
+                ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+                ctx.arc(points[0].x, points[0].y, size / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+                return;
+            }
+            
             ctx.beginPath(); 
             ctx.moveTo(points[0].x, points[0].y);
             for (let i = 1; i < points.length; i++) {
@@ -2382,6 +2408,7 @@
                 time: Date.now(), 
                 page: window.eduApp.currentPage 
             };
+            window.redrawCanvas(); // Cập nhật vẽ ngay lập tức để thấy dấu chấm
         };
 
         const moveAction = (e) => {
@@ -2420,8 +2447,11 @@
             const stroke = window.eduApp.currentStroke; 
             window.eduApp.currentStroke = null;
             
-            if(stroke.points.length > 1) {
-                stroke.points = stroke.points.filter((_, i) => i % 2 === 0 || i === stroke.points.length - 1);
+            if(stroke.points.length > 0) { // Lưu cả dấu chấm (length === 1)
+                // Filter bỏ bớt điểm thừa nếu kéo dài để giảm tải Firebase
+                if (stroke.points.length > 2) {
+                     stroke.points = stroke.points.filter((_, i) => i % 2 === 0 || i === stroke.points.length - 1);
+                }
                 try { 
                     await addDoc(collection(db, 'edumeet', 'public', `strokes_${window.eduApp.room.id}`), stroke); 
                 } catch(e) {}
@@ -2798,7 +2828,7 @@
                     window.executeScreenShare(stream);
                 } catch(e) {
                     if (e.name === 'NotAllowedError' || (e.message && e.message.includes('display-capture'))) {
-                        window.showToast('Môi trường xem trước chặn Chia sẻ màn hình. Vui lòng tải file HTML về máy!', 'error');
+                        window.showToast('Trình duyệt đã chặn Chia sẻ màn hình.', 'error');
                     } else {
                         window.showToast('Đã hủy chia sẻ', 'error');
                     }
