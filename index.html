@@ -489,44 +489,44 @@
 
     <!-- MÀN HÌNH PHÒNG HỌC SÁNG (LEARNING VIEW) -->
     <div id="view-room" class="view-section h-full w-full bg-room-light text-gray-900 flex-col overflow-hidden relative">
-        <header class="h-16 glass-panel flex items-center justify-between px-3 md:px-5 z-40 shrink-0 border-b border-gray-200/50">
-            <div class="flex items-center gap-3">
-                <button onclick="window.promptLeaveRoom('learning')" class="w-10 h-10 bg-white hover:bg-gray-100 border border-gray-200 rounded-[14px] flex items-center justify-center transition-colors shadow-sm text-gray-700">
+        <header class="h-16 glass-panel flex items-center justify-between px-2 md:px-5 z-40 shrink-0 border-b border-gray-200/50">
+            <div class="flex items-center gap-2">
+                <button onclick="window.promptLeaveRoom('learning')" class="w-9 h-9 md:w-10 md:h-10 bg-white hover:bg-gray-100 border border-gray-200 rounded-[12px] flex items-center justify-center transition-colors shadow-sm text-gray-700 shrink-0">
                     <i class="ph-bold ph-caret-left text-xl"></i>
                 </button>
                 <div class="flex flex-col">
-                    <h1 id="room-title-display" class="font-bold text-base md:text-lg truncate max-w-[200px] tracking-wide text-gray-900">Lớp học</h1>
-                    <button onclick="window.copyRoomCode('learning')" class="md:hidden flex items-center gap-1 text-[11px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded w-max">
+                    <h1 id="room-title-display" class="font-bold text-sm md:text-lg truncate max-w-[110px] sm:max-w-[150px] md:max-w-[200px] tracking-wide text-gray-900">Lớp học</h1>
+                    <button onclick="window.copyRoomCode('learning')" class="md:hidden flex items-center gap-1 text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded w-max">
                         Mã: <span id="room-code-mobile">---</span> <i class="ph-bold ph-copy"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2.5 md:gap-4">
+            <div class="flex items-center gap-1.5 md:gap-4 shrink-0">
                 <button onclick="window.copyRoomCode('learning')" class="hidden md:flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded-xl text-sm font-mono transition-colors font-bold text-gray-700 shadow-sm">
                     Mã lớp: <span id="room-code-display" class="text-blue-600">---</span> <i class="ph-bold ph-copy text-gray-400"></i>
                 </button>
                 
-                <div class="flex items-center gap-1 bg-white/80 rounded-2xl p-1 border border-gray-200 shadow-sm">
-                    <button id="btn-mic" onclick="window.toggleMic()" class="w-10 h-10 rounded-xl transition-colors bg-red-100 text-red-500 flex items-center justify-center" title="Bật/Tắt Mic">
-                        <i class="ph-bold ph-microphone-slash text-xl" id="icon-mic"></i>
+                <div class="flex items-center gap-0.5 md:gap-1 bg-white/80 rounded-[14px] p-1 border border-gray-200 shadow-sm shrink-0">
+                    <button id="btn-mic" onclick="window.toggleMic()" class="w-9 h-9 md:w-10 md:h-10 rounded-xl transition-colors bg-red-100 text-red-500 flex items-center justify-center" title="Bật/Tắt Mic">
+                        <i class="ph-bold ph-microphone-slash text-lg md:text-xl" id="icon-mic"></i>
                     </button>
-                    <button id="btn-cam" onclick="window.toggleCam()" class="w-10 h-10 rounded-xl transition-colors bg-red-100 text-red-500 flex items-center justify-center" title="Bật/Tắt Camera">
-                        <i class="ph-bold ph-video-camera-slash text-xl" id="icon-cam"></i>
+                    <button id="btn-cam" onclick="window.toggleCam()" class="w-9 h-9 md:w-10 md:h-10 rounded-xl transition-colors bg-red-100 text-red-500 flex items-center justify-center" title="Bật/Tắt Camera">
+                        <i class="ph-bold ph-video-camera-slash text-lg md:text-xl" id="icon-cam"></i>
                     </button>
                 </div>
 
-                <button onclick="window.saveCanvasAsPDF()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-xl text-[13px] md:text-sm font-bold transition-colors shadow-md text-white">
-                    <i class="ph-bold ph-file-pdf text-lg"></i> <span class="mobile-hidden">Lưu thành PDF</span>
+                <button onclick="window.saveCanvasAsPDF()" class="hidden md:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md text-white shrink-0">
+                    <i class="ph-bold ph-file-pdf text-lg"></i> Lưu PDF
                 </button>
                 
-                <button id="btn-delete-room" onclick="window.promptDeleteRoom('learning')" class="hidden w-10 h-10 bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-xl items-center justify-center transition-colors border border-red-200" title="Kết thúc lớp học">
-                    <i class="ph-bold ph-power text-xl"></i>
+                <button id="btn-delete-room" onclick="window.promptDeleteRoom('learning')" class="hidden w-9 h-9 md:w-10 md:h-10 bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-xl items-center justify-center transition-colors border border-red-200 shrink-0" title="Kết thúc lớp học">
+                    <i class="ph-bold ph-power text-lg md:text-xl"></i>
                 </button>
 
-                <button onclick="window.toggleMobileChat('learning')" class="md:hidden w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center shadow-sm text-blue-600 relative">
-                    <i class="ph-bold ph-users-three text-xl"></i>
-                    <span id="mobile-chat-badge-learning" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">!</span>
+                <button onclick="window.toggleMobileChat('learning')" class="md:hidden w-9 h-9 bg-white border border-gray-200 rounded-xl flex items-center justify-center shadow-sm text-blue-600 relative shrink-0">
+                    <i class="ph-bold ph-users-three text-lg"></i>
+                    <span id="mobile-chat-badge-learning" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">!</span>
                 </button>
             </div>
         </header>
@@ -1874,14 +1874,15 @@
             const btnMic = document.getElementById('btn-mic');
             const iconMic = document.getElementById('icon-mic');
             const statusMicLocal = document.getElementById('status-mic-local');
-            if(btnMic) btnMic.className = window.eduApp.micEnabled ? 'w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center transition shadow-sm border border-blue-200' : 'w-10 h-10 rounded-xl bg-red-100/50 text-red-500 flex items-center justify-center transition border border-red-200/50';
-            if(iconMic) iconMic.className = window.eduApp.micEnabled ? 'ph-bold ph-microphone text-xl' : 'ph-bold ph-microphone-slash text-xl';
+            // Cập nhật lại class thêm responsive w-9 h-9 md:w-10 md:h-10
+            if(btnMic) btnMic.className = window.eduApp.micEnabled ? 'w-9 h-9 md:w-10 md:h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center transition shadow-sm border border-blue-200 shrink-0' : 'w-9 h-9 md:w-10 md:h-10 rounded-xl bg-red-100/50 text-red-500 flex items-center justify-center transition border border-red-200/50 shrink-0';
+            if(iconMic) iconMic.className = window.eduApp.micEnabled ? 'ph-bold ph-microphone text-lg md:text-xl' : 'ph-bold ph-microphone-slash text-lg md:text-xl';
             if(statusMicLocal) statusMicLocal.className = window.eduApp.micEnabled ? 'ph-fill ph-microphone text-green-400 text-sm' : 'ph-fill ph-microphone-slash text-red-400 text-sm';
             
             const btnCam = document.getElementById('btn-cam');
             const iconCam = document.getElementById('icon-cam');
-            if(btnCam) btnCam.className = window.eduApp.camEnabled ? 'w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center transition shadow-sm border border-blue-200' : 'w-10 h-10 rounded-xl bg-red-100/50 text-red-500 flex items-center justify-center transition border border-red-200/50';
-            if(iconCam) iconCam.className = window.eduApp.camEnabled ? 'ph-bold ph-video-camera text-xl' : 'ph-bold ph-video-camera-slash text-xl';
+            if(btnCam) btnCam.className = window.eduApp.camEnabled ? 'w-9 h-9 md:w-10 md:h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center transition shadow-sm border border-blue-200 shrink-0' : 'w-9 h-9 md:w-10 md:h-10 rounded-xl bg-red-100/50 text-red-500 flex items-center justify-center transition border border-red-200/50 shrink-0';
+            if(iconCam) iconCam.className = window.eduApp.camEnabled ? 'ph-bold ph-video-camera text-lg md:text-xl' : 'ph-bold ph-video-camera-slash text-lg md:text-xl';
 
             const localVideo = document.getElementById('local-video');
             const localPlaceholder = document.getElementById('local-video-placeholder');
@@ -1896,6 +1897,75 @@
             }
         };
 
+        window.toggleMic = async () => {
+            window.eduApp.micEnabled = !window.eduApp.micEnabled;
+            window.updateMediaButtonsUI();
+            
+            if (window.eduApp.localStream) {
+                const currentAudioTrack = window.eduApp.localStream.getAudioTracks()[0];
+                if (window.eduApp.micEnabled && (!currentAudioTrack || currentAudioTrack.label === "")) {
+                    try {
+                        const newStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        const newTrack = newStream.getAudioTracks()[0];
+                        window.eduApp.localStream.removeTrack(currentAudioTrack);
+                        window.eduApp.localStream.addTrack(newTrack);
+
+                        // Đã fix lỗi Mic: Bổ sung thay thế Track Audio cho tất cả những người đang kết nối (calls)
+                        Object.values(window.eduApp.calls).forEach(call => {
+                            call.peerConnection.getSenders().forEach(sender => {
+                                if(sender.track && sender.track.kind === 'audio') {
+                                    sender.replaceTrack(newTrack);
+                                }
+                            });
+                        });
+                    } catch(e) { 
+                        window.showToast('Không thể kết nối Micro', 'error'); 
+                        window.eduApp.micEnabled = false; 
+                        window.updateMediaButtonsUI(); 
+                        return; 
+                    }
+                } else if (currentAudioTrack) {
+                    currentAudioTrack.enabled = window.eduApp.micEnabled;
+                }
+            }
+        };
+
+        window.toggleCam = async () => {
+            window.eduApp.camEnabled = !window.eduApp.camEnabled;
+            window.updateMediaButtonsUI();
+
+            if (window.eduApp.localStream) {
+                const currentVideoTrack = window.eduApp.localStream.getVideoTracks()[0];
+                if (window.eduApp.camEnabled && (!currentVideoTrack || currentVideoTrack.label === "")) {
+                    try {
+                        const newStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        const newTrack = newStream.getVideoTracks()[0];
+                        window.eduApp.localStream.removeTrack(currentVideoTrack);
+                        window.eduApp.localStream.addTrack(newTrack);
+                        
+                        // Force cập nhật giao diện Video cá nhân ngay lập tức cho Mobile
+                        const localVideo = document.getElementById('local-video');
+                        if (localVideo) localVideo.srcObject = window.eduApp.localStream;
+                        
+                        Object.values(window.eduApp.calls).forEach(call => {
+                            call.peerConnection.getSenders().forEach(sender => {
+                                if(sender.track && sender.track.kind === 'video') {
+                                    sender.replaceTrack(newTrack);
+                                }
+                            });
+                        });
+
+                    } catch(e) { 
+                        window.showToast('Không thể kết nối Camera', 'error'); 
+                        window.eduApp.camEnabled = false; 
+                        window.updateMediaButtonsUI(); 
+                        return; 
+                    }
+                } else if (currentVideoTrack) {
+                    currentVideoTrack.enabled = window.eduApp.camEnabled;
+                }
+            }
+        };
         window.toggleMic = async () => {
             window.eduApp.micEnabled = !window.eduApp.micEnabled;
             window.updateMediaButtonsUI();
